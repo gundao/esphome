@@ -73,6 +73,6 @@ async def to_code(config):
     )
     cg.add_library(
         "BSEC2 Software Library",
-        "1.6.2400",
+        "1.1.2061",
         "https://github.com/BoschSensortec/Bosch-BSEC2-Library.git",
     )
