@@ -13,7 +13,7 @@
 #endif
 
 namespace esphome {
-namespace bme680_bsec {
+namespace bme68x_bsec {
 #ifdef USE_BSEC
 
 enum SampleRate {
@@ -22,9 +22,9 @@ enum SampleRate {
   SAMPLE_RATE_DEFAULT = 2,
 };
 
-#define BME680_BSEC_SAMPLE_RATE_LOG(r) (r == SAMPLE_RATE_DEFAULT ? "Default" : (r == SAMPLE_RATE_ULP ? "ULP" : "LP"))
+#define BME68x_BSEC_SAMPLE_RATE_LOG(r) (r == SAMPLE_RATE_DEFAULT ? "Default" : (r == SAMPLE_RATE_ULP ? "ULP" : "LP"))
 
-class BME680BSECComponent : public Component, public i2c::I2CDevice {
+class BME68xBSECComponent : public Component, public i2c::I2CDevice {
  public:
   void set_temperature_offset(float offset) { this->temperature_offset_ = offset; }
   void set_state_save_interval(uint32_t interval) { this->state_save_interval_ms_ = interval; }
@@ -45,7 +45,7 @@ class BME680BSECComponent : public Component, public i2c::I2CDevice {
   void set_co2_equivalent_sensor(sensor::Sensor *sensor) { this->co2_equivalent_sensor_ = sensor; }
   void set_breath_voc_equivalent_sensor(sensor::Sensor *sensor) { this->breath_voc_equivalent_sensor_ = sensor; }
 
-  static BME680BSECComponent *instance;
+  static BME68xBSECComponent *instance;
   static int8_t read_bytes_wrapper(uint8_t a_register, uint8_t *data, uint32_t len, void *intfPtr);
   static int8_t write_bytes_wrapper(uint8_t a_register, const uint8_t *data, uint32_t len, void *intfPtr);
   static void delay_us(uint32_t period, void *intfPtr);
@@ -71,14 +71,14 @@ class BME680BSECComponent : public Component, public i2c::I2CDevice {
   void load_state_();
   void save_state_(uint8_t accuracy);
 
-  struct bme68x_dev bme680_;
+  struct bme68x_dev bme68x_;
   bsec_bme_settings_t bsec_settings;
-  struct bme68x_heatr_conf bme680_heatr_conf;
+  struct bme68x_heatr_conf bme68x_heatr_conf;
   /* operating mode of sensor */
   uint8_t op_mode;
   bool sleep_mode;
   bsec_library_return_t bsec_status_{BSEC_OK};
-  int8_t bme680_status_{BME68X_OK};
+  int8_t bme68x_status_{BME68X_OK};
 
   int64_t last_time_ms_{0};
   uint32_t millis_overflow_counter_{0};
@@ -107,5 +107,5 @@ class BME680BSECComponent : public Component, public i2c::I2CDevice {
   sensor::Sensor *breath_voc_equivalent_sensor_;
 };
 #endif
-}  // namespace bme680_bsec
+}  // namespace bme68x_bsec
 }  // namespace esphome
