@@ -7,7 +7,7 @@ from esphome.const import (
     CONF_PRESSURE,
     CONF_TEMPERATURE,
     DEVICE_CLASS_HUMIDITY,
-    DEVICE_CLASS_ATMOSPHERIC_PRESSURE,
+    DEVICE_CLASS_PRESSURE,
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
@@ -21,16 +21,17 @@ from esphome.const import (
     ICON_WATER_PERCENT,
 )
 from . import (
-    BME68xBSECComponent,
-    CONF_BME68X_BSEC_ID,
+    BME680BSECComponent,
+    CONF_BME680_BSEC_ID,
     CONF_SAMPLE_RATE,
     SAMPLE_RATE_OPTIONS,
 )
 
-DEPENDENCIES = ["bme68x_bsec"]
+DEPENDENCIES = ["bme680_bsec"]
 
 CONF_IAQ = "iaq"
 CONF_IAQ_STATIC = "iaq_static"
+CONF_IAQ_ACCURACY = "iaq_accuracy"
 CONF_CO2_EQUIVALENT = "co2_equivalent"
 CONF_BREATH_VOC_EQUIVALENT = "breath_voc_equivalent"
 UNIT_IAQ = "IAQ"
@@ -44,13 +45,14 @@ TYPES = [
     CONF_GAS_RESISTANCE,
     CONF_IAQ,
     CONF_IAQ_STATIC,
+    CONF_IAQ_ACCURACY,
     CONF_CO2_EQUIVALENT,
     CONF_BREATH_VOC_EQUIVALENT,
 ]
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_BME68X_BSEC_ID): cv.use_id(BME68xBSECComponent),
+        cv.GenerateID(CONF_BME680_BSEC_ID): cv.use_id(BME680BSECComponent),
         cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
             unit_of_measurement=UNIT_CELSIUS,
             icon=ICON_THERMOMETER,
@@ -64,7 +66,7 @@ CONFIG_SCHEMA = cv.Schema(
             unit_of_measurement=UNIT_HECTOPASCAL,
             icon=ICON_GAUGE,
             accuracy_decimals=1,
-            device_class=DEVICE_CLASS_ATMOSPHERIC_PRESSURE,
+            device_class=DEVICE_CLASS_PRESSURE,
             state_class=STATE_CLASS_MEASUREMENT,
         ).extend(
             {cv.Optional(CONF_SAMPLE_RATE): cv.enum(SAMPLE_RATE_OPTIONS, upper=True)}
@@ -96,6 +98,11 @@ CONFIG_SCHEMA = cv.Schema(
             accuracy_decimals=0,
             state_class=STATE_CLASS_MEASUREMENT,
         ),
+        cv.Optional(CONF_IAQ_ACCURACY): sensor.sensor_schema(
+            icon=ICON_ACCURACY,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),
         cv.Optional(CONF_CO2_EQUIVALENT): sensor.sensor_schema(
             unit_of_measurement=UNIT_PARTS_PER_MILLION,
             icon=ICON_TEST_TUBE,
@@ -122,6 +129,6 @@ async def setup_conf(config, key, hub):
 
 
 async def to_code(config):
-    hub = await cg.get_variable(config[CONF_BME68X_BSEC_ID])
+    hub = await cg.get_variable(config[CONF_BME680_BSEC_ID])
     for key in TYPES:
         await setup_conf(config, key, hub)
