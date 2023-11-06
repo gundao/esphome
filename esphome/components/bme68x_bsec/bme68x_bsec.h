@@ -1,111 +1,134 @@
-#pragma once
+import esphome.codegen as cg
+import esphome.config_validation as cv
+from esphome.components import sensor
+from esphome.const import (
+    CONF_GAS_RESISTANCE,
+    CONF_HUMIDITY,
+    CONF_PRESSURE,
+    CONF_TEMPERATURE,
+    DEVICE_CLASS_HUMIDITY,
+    DEVICE_CLASS_PRESSURE,
+    DEVICE_CLASS_TEMPERATURE,
+    STATE_CLASS_MEASUREMENT,
+    UNIT_CELSIUS,
+    UNIT_HECTOPASCAL,
+    UNIT_OHM,
+    UNIT_PARTS_PER_MILLION,
+    UNIT_PERCENT,
+    ICON_GAS_CYLINDER,
+    ICON_GAUGE,
+    ICON_THERMOMETER,
+    ICON_WATER_PERCENT,
+)
+from . import (
+    BME680BSECComponent,
+    CONF_BME680_BSEC_ID,
+    CONF_SAMPLE_RATE,
+    SAMPLE_RATE_OPTIONS,
+)
 
-#include "esphome/core/component.h"
-#include "esphome/components/sensor/sensor.h"
-#include "esphome/components/text_sensor/text_sensor.h"
-#include "esphome/components/i2c/i2c.h"
-#include "esphome/core/preferences.h"
-#include "esphome/core/defines.h"
-#include <map>
+DEPENDENCIES = ["bme680_bsec"]
 
-#ifdef USE_BSEC
-#include <bsec2.h>
-#endif
+CONF_IAQ = "iaq"
+CONF_IAQ_STATIC = "iaq_static"
+CONF_IAQ_ACCURACY = "iaq_accuracy"
+CONF_CO2_EQUIVALENT = "co2_equivalent"
+CONF_BREATH_VOC_EQUIVALENT = "breath_voc_equivalent"
+UNIT_IAQ = "IAQ"
+ICON_ACCURACY = "mdi:checkbox-marked-circle-outline"
+ICON_TEST_TUBE = "mdi:test-tube"
 
-namespace esphome {
-namespace bme680_bsec {
-#ifdef USE_BSEC
+TYPES = [
+    CONF_TEMPERATURE,
+    CONF_PRESSURE,
+    CONF_HUMIDITY,
+    CONF_GAS_RESISTANCE,
+    CONF_IAQ,
+    CONF_IAQ_STATIC,
+    CONF_IAQ_ACCURACY,
+    CONF_CO2_EQUIVALENT,
+    CONF_BREATH_VOC_EQUIVALENT,
+]
 
-enum SampleRate {
-  SAMPLE_RATE_LP = 0,
-  SAMPLE_RATE_ULP = 1,
-  SAMPLE_RATE_DEFAULT = 2,
-};
+CONFIG_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(CONF_BME680_BSEC_ID): cv.use_id(BME680BSECComponent),
+        cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
+            unit_of_measurement=UNIT_CELSIUS,
+            icon=ICON_THERMOMETER,
+            accuracy_decimals=1,
+            device_class=DEVICE_CLASS_TEMPERATURE,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(
+            {cv.Optional(CONF_SAMPLE_RATE): cv.enum(SAMPLE_RATE_OPTIONS, upper=True)}
+        ),
+        cv.Optional(CONF_PRESSURE): sensor.sensor_schema(
+            unit_of_measurement=UNIT_HECTOPASCAL,
+            icon=ICON_GAUGE,
+            accuracy_decimals=1,
+            device_class=DEVICE_CLASS_PRESSURE,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(
+            {cv.Optional(CONF_SAMPLE_RATE): cv.enum(SAMPLE_RATE_OPTIONS, upper=True)}
+        ),
+        cv.Optional(CONF_HUMIDITY): sensor.sensor_schema(
+            unit_of_measurement=UNIT_PERCENT,
+            icon=ICON_WATER_PERCENT,
+            accuracy_decimals=1,
+            device_class=DEVICE_CLASS_HUMIDITY,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(
+            {cv.Optional(CONF_SAMPLE_RATE): cv.enum(SAMPLE_RATE_OPTIONS, upper=True)}
+        ),
+        cv.Optional(CONF_GAS_RESISTANCE): sensor.sensor_schema(
+            unit_of_measurement=UNIT_OHM,
+            icon=ICON_GAS_CYLINDER,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),
+        cv.Optional(CONF_IAQ): sensor.sensor_schema(
+            unit_of_measurement=UNIT_IAQ,
+            icon=ICON_GAUGE,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),
+        cv.Optional(CONF_IAQ_STATIC): sensor.sensor_schema(
+            unit_of_measurement=UNIT_IAQ,
+            icon=ICON_GAUGE,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),
+        cv.Optional(CONF_IAQ_ACCURACY): sensor.sensor_schema(
+            icon=ICON_ACCURACY,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),
+        cv.Optional(CONF_CO2_EQUIVALENT): sensor.sensor_schema(
+            unit_of_measurement=UNIT_PARTS_PER_MILLION,
+            icon=ICON_TEST_TUBE,
+            accuracy_decimals=1,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),
+        cv.Optional(CONF_BREATH_VOC_EQUIVALENT): sensor.sensor_schema(
+            unit_of_measurement=UNIT_PARTS_PER_MILLION,
+            icon=ICON_TEST_TUBE,
+            accuracy_decimals=1,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),
+    }
+)
 
-#define BME680_BSEC_SAMPLE_RATE_LOG(r) (r == SAMPLE_RATE_DEFAULT ? "Default" : (r == SAMPLE_RATE_ULP ? "ULP" : "LP"))
 
-class BME680BSECComponent : public Component, public i2c::I2CDevice {
- public:
-  void set_temperature_offset(float offset) { this->temperature_offset_ = offset; }
-  void set_state_save_interval(uint32_t interval) { this->state_save_interval_ms_ = interval; }
+async def setup_conf(config, key, hub):
+    if key in config:
+        conf = config[key]
+        sens = await sensor.new_sensor(conf)
+        cg.add(getattr(hub, f"set_{key}_sensor")(sens))
+        if CONF_SAMPLE_RATE in conf:
+            cg.add(getattr(hub, f"set_{key}_sample_rate")(conf[CONF_SAMPLE_RATE]))
 
-  void set_sample_rate(SampleRate sample_rate) { this->sample_rate_ = sample_rate; }
-  void set_temperature_sample_rate(SampleRate sample_rate) { this->temperature_sample_rate_ = sample_rate; }
-  void set_pressure_sample_rate(SampleRate sample_rate) { this->pressure_sample_rate_ = sample_rate; }
-  void set_humidity_sample_rate(SampleRate sample_rate) { this->humidity_sample_rate_ = sample_rate; }
 
-  void set_temperature_sensor(sensor::Sensor *sensor) { this->temperature_sensor_ = sensor; }
-  void set_pressure_sensor(sensor::Sensor *sensor) { this->pressure_sensor_ = sensor; }
-  void set_humidity_sensor(sensor::Sensor *sensor) { this->humidity_sensor_ = sensor; }
-  void set_gas_resistance_sensor(sensor::Sensor *sensor) { this->gas_resistance_sensor_ = sensor; }
-  void set_iaq_sensor(sensor::Sensor *sensor) { this->iaq_sensor_ = sensor; }
-  void set_iaq_static_sensor(sensor::Sensor *sensor) { this->iaq_static_sensor_ = sensor; }
-  void set_iaq_accuracy_text_sensor(text_sensor::TextSensor *sensor) { this->iaq_accuracy_text_sensor_ = sensor; }
-  void set_iaq_accuracy_sensor(sensor::Sensor *sensor) { this->iaq_accuracy_sensor_ = sensor; }
-  void set_co2_equivalent_sensor(sensor::Sensor *sensor) { this->co2_equivalent_sensor_ = sensor; }
-  void set_breath_voc_equivalent_sensor(sensor::Sensor *sensor) { this->breath_voc_equivalent_sensor_ = sensor; }
-
-  static BME680BSECComponent *instance;
-  static int8_t read_bytes_wrapper(uint8_t a_register, uint8_t *data, uint32_t len, void *intfPtr);
-  static int8_t write_bytes_wrapper(uint8_t a_register, const uint8_t *data, uint32_t len, void *intfPtr);
-  static void delay_us(uint32_t period, void *intfPtr);
-
-  void setup() override;
-  void dump_config() override;
-  float get_setup_priority() const override;
-  void loop() override;
-
- protected:
-  void set_config_(const uint8_t *config, u_int32_t len);
-  float calc_sensor_sample_rate_(SampleRate sample_rate);
-  void update_subscription_();
-
-  void run_();
-  void read_(int64_t trigger_time_ns);
-  void publish_(const bsec_output_t *outputs, uint8_t num_outputs);
-  int64_t get_time_ns_();
-
-  void publish_sensor_state_(sensor::Sensor *sensor, float value, bool change_only = false);
-  void publish_sensor_state_(text_sensor::TextSensor *sensor, const std::string &value);
-
-  void load_state_();
-  void save_state_(uint8_t accuracy);
-
-  struct bme68x_dev bme680_;
-  bsec_bme_settings_t bsec_settings;
-  struct bme68x_heatr_conf bme680_heatr_conf;
-  /* operating mode of sensor */
-  uint8_t op_mode;
-  bool sleep_mode;
-  bsec_library_return_t bsec_status_{BSEC_OK};
-  int8_t bme680_status_{BME68X_OK};
-
-  int64_t last_time_ms_{0};
-  uint32_t millis_overflow_counter_{0};
-  int64_t next_call_ns_{0};
-
-  ESPPreferenceObject bsec_state_;
-  uint32_t state_save_interval_ms_{21600000};  // 6 hours - 4 times a day
-  uint32_t last_state_save_ms_ = 0;
-
-  float temperature_offset_{0};
-
-  SampleRate sample_rate_{SAMPLE_RATE_LP};  // Core/gas sample rate
-  SampleRate temperature_sample_rate_{SAMPLE_RATE_DEFAULT};
-  SampleRate pressure_sample_rate_{SAMPLE_RATE_DEFAULT};
-  SampleRate humidity_sample_rate_{SAMPLE_RATE_DEFAULT};
-
-  sensor::Sensor *temperature_sensor_;
-  sensor::Sensor *pressure_sensor_;
-  sensor::Sensor *humidity_sensor_;
-  sensor::Sensor *gas_resistance_sensor_;
-  sensor::Sensor *iaq_sensor_;
-  sensor::Sensor *iaq_static_sensor_;
-  text_sensor::TextSensor *iaq_accuracy_text_sensor_;
-  sensor::Sensor *iaq_accuracy_sensor_;
-  sensor::Sensor *co2_equivalent_sensor_;
-  sensor::Sensor *breath_voc_equivalent_sensor_;
-};
-#endif
-}  // namespace bme680_bsec
-}  // namespace esphome
+async def to_code(config):
+    hub = await cg.get_variable(config[CONF_BME680_BSEC_ID])
+    for key in TYPES:
+        await setup_conf(config, key, hub)
